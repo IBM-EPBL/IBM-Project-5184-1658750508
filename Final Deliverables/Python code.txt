@@ -1,0 +1,50 @@
+import wiotp.sdk.device
+import time
+import random
+import ibmiotf.application 
+import ibmiotf.device 
+import requests, json
+
+
+myConfig = { 
+    "identity": {
+        "orgId": "anrbh6",
+        "typeId": "GAS-LEAKAGE",
+        "deviceId":"12345"
+    },
+    "auth": {
+        "token": "WL!rm4FNDOm+1UTvzL"
+    }
+}
+
+def myCommandCallback(cmd):
+    print("Message received from IBM IoT Platform: %s" % cmd.data['command'])
+    m=cmd.data['command']
+    if(a=="alarm ON"):
+        print("Alarm is turned ON")
+    elif(a=="alarm OFF"):
+        print("Alarm is turned OFF")
+    print(" ")
+
+client = wiotp.sdk.device.DeviceClient(config=myConfig, logHandlers=None)
+client.connect()
+BASE_URL = "https://api.openweathermap.org/data/2.5/weather?" 
+CITY = "Chennai, IN"
+URL = BASE_URL + "q=" + CITY + "&units=metric"+"&appid=" + "c5e2b2a61b6f7264b2eb343713aa4c3b"
+
+
+
+while True:
+    response = requests.get(URL)
+    if response.status_code == 200:  
+        data = response.json()
+    main = data['main'] 
+    temperature = main['temp'] 
+    humidity = main['humidity']
+    haz_gas=random.randint(0,100)
+    myData={'temperature':temperature, 'humidity':humidity,'hazardous_gas':haz_gas}
+    client.publishEvent(eventId="status", msgFormat="json", data=myData, qos=0, onPublish=None)
+    print("Published data Successfully: %s", myData)
+    client.commandCallback = myCommandCallback
+    time.sleep(2)
+client.disconnect()
